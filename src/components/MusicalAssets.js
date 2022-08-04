@@ -10,12 +10,8 @@ function MusicalAssets({ fetchUrl }) {
   useEffect(() => {
     async function fetchData() {
       const user = await Amplify.Auth.currentAuthenticatedUser()
-      console.log('user', user)
-      console.log('username', user.username)
       setUserName(user.username)
       const token = user.signInUserSession.idToken.jwtToken
-      console.log('token', token)
-
       const request = await axios.get(fetchUrl, {
         headers: {
           Authorization: token,
@@ -29,12 +25,11 @@ function MusicalAssets({ fetchUrl }) {
 
   const handleClick = (item) => {
     let id = item.id
-    console.log('Item', id)
   }
 
   return (
     <section className='musicalassets'>
-      {/* <p className='username'>Hello, {userName}</p> */}
+     <p className='username'>Hello, {userName}</p>
       <div className='assets'>
         {music.map((item) => (
           <div className='image-wrapper'>

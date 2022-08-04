@@ -1,0 +1,583 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  tm-backend
+  Sample SAM Template for tm-backend
+  
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 30
+    Runtime: nodejs12.x
+    Environment:
+      Variables:
+        DATABASE_SECRET_ARN: 
+          Ref: DbSecretArn
+        DATABASE_RESOURCE_ARN: 
+          Ref: DbResourceArn
+        DATABASE_NAME:
+          Ref: DbName
+        MANGOPAY_CLIENT_ID: 
+          Ref: MangopayClientId 
+        MANGOPAY_API_KEY: 
+          Ref: MangopayApiKey
+        MANGOPAY_BASE_URL:
+          Ref: MangopayBaseUrl
+        MATCH_ORDERS_QUEUE:
+          Ref: MatchOrdersPostQueue
+        COGNITO_USER_POOL:
+          Ref: CognitoUserPool
+        
+
+Parameters:
+  DbSecretArn:
+    Type: String
+    Default: DbArb
+  DbResourceArn:
+    Type: String
+    Default: DbResource
+  DbName:
+    Type: String
+    Default: DbName
+  MangopayClientId:
+    Type: String
+    Default: MangopayClient
+  MangopayApiKey:
+    Type: String
+    Default: MangopayKey
+  MangopayBaseUrl:
+    Type: String
+    Default: https://api.sandbox.mangopay.com
+  MatchOrdersPostQueue:
+    Type: String
+    Default: Queue
+  MatchOrdersQueueArn:
+    Type: String
+    Default: QueueArn
+  CognitoUserPoolArn:
+    Type: String
+    Default: UserPoolArn
+  CognitoUserPool:
+    Type: String
+    Default: UserPool
+  Env:
+    Type: String
+    Default: local
+    AllowedValues:
+      - dev
+      - prod
+      - local
+
+Resources:
+  RestAPI:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Auth:
+        DefaultAuthorizer: MyCognitoAuth # OPTIONAL
+        Authorizers:
+          MyCognitoAuth:
+            # Can also accept an array
+            UserPoolArn: 
+              Ref: CognitoUserPoolArn
+      DefinitionBody: 
+        openapi: 3.0.0
+        info:
+          version: '1'
+          title: 
+            Fn::Sub: tm-backend-${Env}
+
+          description: ''
+        x-amazon-apigateway-request-validators: 
+            all: 
+              validateRequestBody: true
+              validateRequestParameters: true
+            params-only: 
+              validateRequestBody: false
+              validateRequestParameters: true   
+            basic:
+              validateRequestBody: true
+              validateRequestParameters: true
+        paths:   
+          /bankaccounts:
+            get:
+              summary: Gets a BankAccount object.
+              description: Optional extended description in CommonMark or HTML.
+              responses:
+                '200':    # status code
+                  description: A JSON object of BankAccount object        
+                  content:
+                    application/json:
+                      schema: 
+                        type: array
+                        items:
+                          $ref "#/components/schemas/BankAccount"
+              x-amazon-apigateway-integration:
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${BankAccountsFunction.Arn}/invocations
+                passthroughBehavior: "when_no_match"
+                httpMethod: "POST"
+                type: "aws_proxy"  
+            post:
+              requestBody:   
+                required: true                    
+                content:
+                  application/json:
+                    schema: 
+                      $ref "#/components/schemas/BankAccount"
+              responses:
+                '201':    # status code
+                  description: Created        
+                  content:
+                    application/json:
+                      schema: 
+                        type: string
+              x-amazon-apigateway-integration:
+                uri:
+                  Fn::Sub: arn:aws:apigateway:***invocations
+                passthroughBehavior: "when_no_match"
+                httpMethod: "POST"
+                type: "aws_proxy"  
+          /cards:
+            get:
+              summary: Gets a Cardregistration object.
+              description: Optional extended description in CommonMark or HTML.
+              responses:
+                '200':    # status code
+                  description: A JSON object of Cardregistration object        
+                  content:
+                    application/json:
+                      schema: 
+                        type: array
+                        items:
+                          $ref "#/components/schemas/Card"
+              x-amazon-apigateway-integration:
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${***/invocations
+                passthroughBehavior: "when_no_match"
+                httpMethod: "POST"
+                type: "aws_proxy"  
+          /cards/registration:
+            get:
+              summary: Gets a Cardregistration object.
+              description: Optional extended description in CommonMark or HTML.
+              responses:
+                '200':    # status code
+                  description: A JSON object of Cardregistration object        
+                  content:
+                    application/json:
+                      schema: 
+                        type: object
+                        properties:
+                          name: 
+                            type: string
+              x-amazon-apigateway-integration:
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}***/invocations
+                passthroughBehavior: "when_no_match"
+                httpMethod: "POST"
+                type: "aws_proxy"  
+          /cards/preauthorization:
+            post:
+              x-amazon-apigateway-request-validator: basic
+              parameters: 
+                in: requestBody
+                required: true
+              responses:
+                '201':    # status code
+                  description: A JSON object of Cardregistration object        
+                  content:
+                    application/json:
+                      schema: 
+                        type: object
+                        properties:
+                          name: 
+                            type: string
+              x-amazon-apigateway-integration:
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:***/invocations
+                passthroughBehavior: "WHEN_NO_MATCH"
+                httpMethod: "POST"
+                type: "aws_proxy"  
+          /musicalassets:
+            get:
+              summary: Returns a list of musical assets.
+              description: Optional extended description in CommonMark or HTML.
+              responses:
+                '200':    # status code
+                  description: A JSON array of MusicalAsset objects        
+                  content:
+                    application/json:
+                      schema: 
+                        type: array
+                        items:
+                          $ref "#/components/schemas/MusicalAsset"
+              security:
+                - NONE: []
+              x-amazon-apigateway-integration:
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:***/invocations
+                passthroughBehavior: "when_no_match"
+                httpMethod: "POST"
+                type: "aws_proxy"  
+          /musicalassets/{id}:
+            get:
+              summary: Returns a musical assets.
+              description: Optional extended description in CommonMark or HTML.
+              responses:
+                '200':    # status code
+                  description: A JSON object of MusicalAsset type        
+                  content:
+                    application/json:
+                      schema: 
+                        type: object
+                          $ref "#/components/schemas/MusicalAsset"
+              security:
+                - NONE: []
+              x-amazon-apigateway-integration:
+                uri:
+                  Fn::Sub: arn:aws:apigateway:***/invocations
+                passthroughBehavior: "when_no_match"
+                httpMethod: "POST"
+                type: "aws_proxy"                            
+          
+          /musicalassets/{id}/buyorders:
+            post:
+              x-amazon-apigateway-request-validator: basic
+              parameters: 
+                in: requestBody
+                required: true
+                schema: CreateTradingOrderModel  
+              responses:
+                '201':    # status code
+                  description: A JSON object of Cardregistration object        
+                  content:
+                    application/json:
+                      schema: 
+                        type: object
+                        properties:
+                          name: 
+                            type: string
+              x-amazon-apigateway-integration:
+                uri:
+                  Fn::Sub: arn:aws***/invocations
+                passthroughBehavior: "WHEN_NO_MATCH"
+                httpMethod: "POST"
+                type: "aws_proxy"  
+          /musicalassets/{id}/sellorders:
+            post:
+              x-amazon-apigateway-request-validator: basic
+              parameters: 
+                in: requestBody
+                required: true
+                schema: CreateTradingOrderModel  
+              responses:
+                '201':    # status code
+                  description: A JSON object of Cardregistration object        
+                  content:
+                    application/json:
+                      schema: 
+                        type: object
+                        properties:
+                          name: 
+                            type: string
+              x-amazon-apigateway-integration:
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:***/invocations
+                passthroughBehavior: "WHEN_NO_MATCH"
+                httpMethod: "POST"
+                type: "aws_proxy"  
+          /pendingorders/{id}:
+            delete:
+              summary: Delete a TradingOrder for a MusicalAsset
+              responses:
+                '204':    # status code
+                  description: No Content
+              x-amazon-apigateway-integration:
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:***/invocations
+                passthroughBehavior: "when_no_match"
+                httpMethod: "POST"
+                type: "aws_proxy"            
+          /musicalassets/{id}/pendingorders/mine:
+            get:
+              summary: Returns a list of users PendingOrders for a MusicalAsset
+              description: Optional extended description in CommonMark or HTML.
+              responses:
+                '200':    # status code
+                  description: A JSON object of MusicalAsset type        
+                  content:
+                    application/json:
+                      schema: 
+                        type: object
+                          $ref "#/components/schemas/TradingOrder"
+              x-amazon-apigateway-integration:
+                uri:
+                  Fn::Sub: arn:aws:apigateway:$***/invocations
+                passthroughBehavior: "when_no_match"
+                httpMethod: "POST"
+                type: "aws_proxy"  
+            
+          /musicalassets/{id}/ownedshares:
+            get:
+              summary: Returns a list of users PendingOrders for a MusicalAsset
+              description: Optional extended description in CommonMark or HTML.
+              responses:
+                '200':    # status code
+                  description: A JSON object of MusicalAsset type        
+                  content:
+                    application/json:
+                      schema: 
+                        type: object
+                          $ref "#/components/schemas/TradingOrder"
+              x-amazon-apigateway-integration:
+                uri:
+                  Fn::Sub: arn:aws:apigateway:$***/invocations
+                passthroughBehavior: "when_no_match"
+                httpMethod: "POST"
+                type: "aws_proxy"  
+          /musicalassets/{id}/pendingorders/others:
+            get:
+              summary: Returns a list of users PendingOrders for a MusicalAsset
+              description: Optional extended description in CommonMark or HTML.
+              responses:
+                '200':    # status code
+                  description: A JSON object of MusicalAsset type        
+                  content:
+                    application/json:
+                      schema: 
+                        type: object
+                          $ref "#/components/schemas/TradingOrder"
+              security:
+                - NONE: []
+              x-amazon-apigateway-integration:
+                uri:
+                  Fn::Sub: arn:aws:apigateway:$***/invocations
+                passthroughBehavior: "when_no_match"
+                httpMethod: "POST"
+                type: "aws_proxy"  
+          /musicalassets/{id}/price/{start}/{end}:
+            get:
+              summary: Returns a list of users PendingOrders for a MusicalAsset
+              description: Optional extended description in CommonMark or HTML.
+              responses:
+                '200':    # status code
+                  description: A JSON object of MusicalAsset type        
+                  content:
+                    application/json:
+                      schema: 
+                        type: object
+                          $ref "#/components/schemas/TradingOrder"
+              security:
+                - NONE: []
+              x-amazon-apigateway-integration:
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:***/invocations
+                passthroughBehavior: "when_no_match"
+                httpMethod: "POST"
+                type: "aws_proxy"  
+          /userprofile:
+            get:
+              summary: Returns user profile
+              description: Optional extended description in CommonMark or HTML.
+              responses:
+                '200':    # status code
+                  description: A JSON object of UserProfile objects        
+                  content:
+                    application/json:
+                      schema: 
+                        type: array
+                        items:
+                          $ref "#/components/schemas/UserProfile"
+              x-amazon-apigateway-integration:
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:***/invocations
+                passthroughBehavior: "when_no_match"
+                httpMethod: "POST"
+                type: "aws_proxy"  
+          /ewallet:
+            get:
+              summary: Gets a Cardregistration object.
+              description: Optional extended description in CommonMark or HTML.
+              responses:
+                '200':    # status code
+                  description: A JSON object of Cardregistration object        
+                  content:
+                    application/json:
+                      schema: 
+                        type: array
+                        items:
+                          $ref "#/components/schemas/Balance"
+              x-amazon-apigateway-integration:
+                uri:
+                  Fn::Sub: arn:aws:apigateway:$***/invocations
+                passthroughBehavior: "when_no_match"
+                httpMethod: "POST"
+                type: "aws_proxy"  
+          /ewallet/deposit/fees:
+            post:
+              requestBody:   
+                required: true                    
+                content:
+                  application/json:
+                    schema: 
+                      $ref "#/components/schemas/DepositFunds"
+              responses:
+                '201':    # status code
+                  description: A JSON object of UserProfile objects        
+                  content:
+                    application/json:
+                      schema: 
+                        type: object
+                        properties:
+                          message:
+                            type: string
+              x-amazon-apigateway-integration:
+                uri:
+                  Fn::Sub: arn:aws:apigateway:$***/invocations
+                passthroughBehavior: "when_no_match"
+                httpMethod: "POST"
+                type: "aws_proxy" 
+          /ewallet/depositv2:
+            post:
+              requestBody:   
+                required: true                    
+                content:
+                  application/json:
+                    schema: 
+                      $ref "#/components/schemas/DepositFunds"
+              responses:
+                '201':    # status code
+                  description: A JSON object of UserProfile objects        
+                  content:
+                    application/json:
+                      schema: 
+                        type: object
+                        properties:
+                          message:
+                            type: string
+              x-amazon-apigateway-integration:
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:***/invocations
+                passthroughBehavior: "when_no_match"
+                httpMethod: "POST"
+                type: "aws_proxy"   
+          /ewallet/withdraw:
+            post:
+              requestBody:   
+                required: true                    
+                content:
+                  application/json:
+                    schema: 
+                      $ref "#/components/schemas/WithdrawFunds"
+              responses:
+                '201':    # status code
+                  description: A JSON object of UserProfile objects        
+                  content:
+                    application/json:
+                      schema: 
+                        type: string
+              x-amazon-apigateway-integration:
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WithdrawFundsFunction.Arn}/invocations
+                passthroughBehavior: "when_no_match"
+                httpMethod: "POST"
+                type: "aws_proxy"
+         
+  WithdrawFundsFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      Handler: payments/post-withdrawFunds.*** 
+      Events:
+        ApiEvent:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            RestApiId: 
+              Ref: RestAPI
+            Path: /ewallet/withdraw
+            Method: post
+
+  BalanceFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      Handler: payments/get-balance.getBalanceHandler
+      Events:
+        ApiEvent:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            RestApiId: 
+              Ref: RestAPI
+            Path: /ewallet
+            Method: get 
+       
+
+  UserCreatedFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      Handler: payments/on-usercreated.onUserCreatedHandler
+      Policies: ***
+      Events:
+        ApiEvent:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            RestApiId: 
+              Ref: RestAPI
+            Path: /payments/usercreated
+            Method: get
+        
+  UserPofileFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      Handler: payments/get-userprofile.getUserProfileHandler 
+      Policies: ***
+      Events:
+        ApiEvent:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            RestApiId: 
+              Ref: RestAPI
+            Path: /userprofile
+            Method: get
+
+  MusicalAssetsFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      Policies: ***
+      Handler: payments/get-musicalassets.getMusicalAssetsHandler
+      Events:
+        ApiEvent:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            RestApiId: 
+              Ref: RestAPI
+            Path: /musicalassets
+            Method: get
+            Auth:
+                Authorizer: "NONE"
+
+  PriceDevelopmentFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      Policies: ***
+      Handler: ***
+      Events:
+        ApiEvent:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            RestApiId: 
+              Ref: RestAPI
+            Path: /musicalassets/*/price/*/*
+            Method: get
+
+#Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  #HelloWorldApi:
+  #  Description: "API Gateway endpoint URL for Dev stage for Hello World function"
+  #  Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Stage/payments/"
+ # HelloWorldFunction:
+ #   Description: "Payments Lambda Function ARN"
+ #   Value: !GetAtt HelloWorldFunction.Arn
+  #UserCreatedFunctionIamRole:
+   #Value: !GetAtt UserCreatedFunctionRole.Arn
