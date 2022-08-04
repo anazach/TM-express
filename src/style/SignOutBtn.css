@@ -1,0 +1,22 @@
+button {
+    margin-top: 9px;
+    background: none;
+    border: none;
+    color: white;
+    border-radius: 29px;
+    padding: 10px;
+    width: 120px;
+    font-size: medium;
+    transition: 0.5s;
+    text-transform: uppercase;
+    font-weight: 800;
+    letter-spacing: 1px;
+    margin-left: 12px;
+    margin-right: 12px;
+  }
+  
+  button:hover {
+    cursor: pointer;
+    background: #ff4c00;
+  }
+  
